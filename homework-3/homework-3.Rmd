@@ -1,0 +1,61 @@
+---
+title: "Homework 3 - Question 2"
+author: "Nickhil Sethi"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(printr)
+library(gridExtra)
+library(faraway)
+```
+
+
+Load pima dataset:
+```{r}
+data("pima")
+?pima
+```
+## a) Let's 
+
+```{r}
+ggplot(pima, aes(x=insulin, fill=factor(test))) + geom_histogram(alpha=.6, position="dodge", binwidth=10)
+```
+Without the incredible zero values, insulin appears to have a poisson distribution with mean conditional on the test outcome:
+```{r}
+pima$insulin[pima$insulin == 0] <- NA
+ggplot(pima, aes(x=insulin, fill=factor(test))) + geom_histogram(position="dodge", binwidth=10)
+```
+### c)
+Let's plot the other values and inspect for any suspect zero values: 
+```{r}
+ggplot(pima, aes(x=glucose, fill=factor(test))) + geom_histogram(position="dodge", binwidth=10)
+ggplot(pima, aes(x=bmi, fill=factor(test))) + geom_histogram(position="dodge", binwidth=5)
+ggplot(pima, aes(x=diabetes, fill=factor(test))) + geom_histogram(position="dodge", binwidth=.1)
+ggplot(pima, aes(x=triceps, fill=factor(test))) + geom_histogram(position="dodge", binwidth=.1)
+ggplot(pima, aes(x=age, fill=factor(test))) + geom_histogram(position="dodge", binwidth=.1)
+ggplot(pima, aes(x=pregnant, fill=factor(test))) + geom_histogram(position="dodge", binwidth=.1)
+ggplot(pima, aes(x=diastolic, fill=factor(test))) + geom_histogram(position="dodge", binwidth=.1)
+```
+It seems the following variables have incredible zeros:
+```{r}
+pima$glucose[pima$glucose == 0] <- NA
+pima$bmi[pima$bmi == 0] <- NA
+pima$triceps[pima$triceps == 0] <- NA
+pima$diastolic[pima$diastolic == 0] <- NA
+```
+Now let's fit a model. It seems about half the rows had some `NA` value and therefore were not included in the regression.
+```{r}
+lmod <- glm(test ~ pregnant + glucose + diastolic + triceps
+          + insulin + bmi + diabetes + age, family=binomial, pima)
+sumary(lmod)
+nrow(pima)
+```
+```{r}
+lmod <- glm(test ~ pregnant + glucose + diastolic 
+          + bmi + diabetes + age, family=binomial, pima)
+```
