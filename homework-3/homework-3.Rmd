@@ -69,18 +69,23 @@ lmod <- glm(test ~ pregnant + glucose + diastolic + triceps
 sumary(lmod)
 nrow(pima)
 ```
+
+## 2.d
 ```{r}
 lmod2 <- glm(test ~ pregnant + glucose + diastolic 
           + bmi + diabetes + age, family=binomial, pima)
 sumary(lmod2)
 ```
-Deviance of lmod2 - lmod2 
+
+Now to test the significance of the smaller model against the larger model, we look at the difference in the deviance, which should be chi-squared distributed under the null.
 ```{r}
 diff <- deviance(lmod2) - deviance(lmod)
 diff
 1 - pchisq(diff, 2)
 ```
 
+
+## 2.e
 Now let's compare based on AIC, using the $step$ command, starting from the largest possible model $lmod$
 ```{r}
 # required to get step to 
@@ -93,7 +98,7 @@ sumary(lmodr)
 ```
 As we can see, $pregnant$, $bmi$, $diabetes$, and $age$ are selected as predictors (although it's noteworthy that the p-value on $pregnant$ is doesn't pass significance). 392 data points are used in the final model.
 
-## f)
+## 2.f
 
 ```{r}
 # let's add a column 
@@ -116,10 +121,35 @@ sumary(lmod_missing_values)
 # correlation between the two variables
 plot(jitter(as.numeric(has_missing), .5) ~ jitter(test, .5),  pima)
 
-# now let's include the model
-lmod_handle_missing <- glm(
-  test ~ pregnant + glucose + diastolic + triceps
-          + insulin + bmi + diabetes + age + as.numeric(has_missing),
-  family=binomial, pima)
-sumary(lmod_handle_missing)
+# now let's rerun the previous model on the whole dataset
+lmodr2 <- glm(test ~ pregnant + glucose + bmi + diabetes + age, family = binomial, pima)
+sumary(lmodr)
+sumary(lmodr2)
+```
+
+Because $has_missing$ is uncorrelated with the response, it's fine to drop missing data.
+
+## 2.g
+
+```{r}
+bmi_coeff <- coef(lmodr2)[[4]]
+bmi_quartiles <- quantile(pima$bmi, na.rm=TRUE)
+bmi_quartiles
+
+third_quartile <- as.numeric(bmi_quartiles[[3]])
+first_quartile <- as.numeric(bmi_quartiles[[1]])
+odds_ratio <- exp(third_quartile * bmi_coeff) / exp(first_quartile * bmi_coeff)
+
+odds_ratio
+
+bmi_confint <- confint(lmodr2, "bmi")
+lowerbound <- bmi_confint[[1]]
+upperbound <- bmi_confint[[2]]
+
+upperbound_odds_ratio <- exp(third_quartile * upperbound) / exp(first_quartile * upperbound)
+
+lowerbound_odds_ratio <- exp(third_quartile * lowerbound) / exp(first_quartile * lowerbound)
+
+lowerbound_odds_ratio
+upperbound_odds_ratio
 ```
