@@ -7,7 +7,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, width.cutoff=50)
 library(ggplot2)
 library(printr)
 library(gridExtra)
@@ -18,37 +18,51 @@ library(faraway)
 Load pima dataset:
 ```{r}
 data("pima")
-?pima
 ```
-## a) Let's 
-
+## 2.a
+One thing that seems unbelievable about this plot -- there seem to be a very large number of zeros on the insulin variable, both for positive and negative tests. This suggests to me either a coding error or 0 representing missing data.
 ```{r}
-ggplot(pima, aes(x=insulin, fill=factor(test))) + geom_histogram(alpha=.6, position="dodge", binwidth=10)
+ggplot(pima, aes(x=insulin, fill=factor(test))) + 
+geom_histogram(
+  alpha=.6, position="dodge", binwidth=10)
 ```
+
+## 2.b
 Without the incredible zero values, insulin appears to have a poisson distribution with mean conditional on the test outcome:
 ```{r}
 pima$insulin[pima$insulin == 0] <- NA
 ggplot(pima, aes(x=insulin, fill=factor(test))) + geom_histogram(position="dodge", binwidth=10)
 ```
-### c)
+
+## 2.c
 Let's plot the other values and inspect for any suspect zero values: 
 ```{r}
-ggplot(pima, aes(x=glucose, fill=factor(test))) + geom_histogram(position="dodge", binwidth=10)
-ggplot(pima, aes(x=bmi, fill=factor(test))) + geom_histogram(position="dodge", binwidth=5)
-ggplot(pima, aes(x=diabetes, fill=factor(test))) + geom_histogram(position="dodge", binwidth=.1)
-ggplot(pima, aes(x=triceps, fill=factor(test))) + geom_histogram(position="dodge", binwidth=.1)
-ggplot(pima, aes(x=age, fill=factor(test))) + geom_histogram(position="dodge", binwidth=.1)
-ggplot(pima, aes(x=pregnant, fill=factor(test))) + geom_histogram(position="dodge", binwidth=.1)
-ggplot(pima, aes(x=diastolic, fill=factor(test))) + geom_histogram(position="dodge", binwidth=.1)
+g1 <- ggplot(pima, aes(x=glucose, fill=factor(test))) + geom_histogram(position="dodge", binwidth=10)
+
+g2 <- ggplot(pima, aes(x=bmi, fill=factor(test))) + geom_histogram(position="dodge", binwidth=5)
+
+g3 <- ggplot(pima, aes(x=diabetes, fill=factor(test))) + geom_histogram(position="dodge", binwidth=.1)
+
+g4 <- ggplot(pima, aes(x=triceps, fill=factor(test))) + geom_histogram(position="dodge", binwidth=.1)
+
+g5 <- ggplot(pima, aes(x=age, fill=factor(test))) + geom_histogram(position="dodge", binwidth=.1)
+
+g6 <- ggplot(pima, aes(x=pregnant, fill=factor(test))) + geom_histogram(position="dodge", binwidth=.1)
+
+g7 <- ggplot(pima, aes(x=diastolic, fill=factor(test))) + geom_histogram(position="dodge", binwidth=.1)
+
+grid.arrange(g1, g2, g3, g4, g5, g6, g7, ncol=2)
 ```
+
 It seems the following variables have incredible zeros:
 ```{r}
 pima$glucose[pima$glucose == 0] <- NA
 pima$bmi[pima$bmi == 0] <- NA
 pima$triceps[pima$triceps == 0] <- NA
 pima$diastolic[pima$diastolic == 0] <- NA
+nrow(pima)
 ```
-Now let's fit a model. It seems about half the rows had some `NA` value and therefore were not included in the regression.
+Now let's fit a model. It seems 374 of the  768 rows in $pima$ had some `NA` value and therefore were not included in the regression.
 ```{r}
 lmod <- glm(test ~ pregnant + glucose + diastolic + triceps
           + insulin + bmi + diabetes + age, family=binomial, pima)
@@ -56,6 +70,56 @@ sumary(lmod)
 nrow(pima)
 ```
 ```{r}
-lmod <- glm(test ~ pregnant + glucose + diastolic 
+lmod2 <- glm(test ~ pregnant + glucose + diastolic 
           + bmi + diabetes + age, family=binomial, pima)
+sumary(lmod2)
+```
+Deviance of lmod2 - lmod2 
+```{r}
+diff <- deviance(lmod2) - deviance(lmod)
+diff
+1 - pchisq(diff, 2)
+```
+
+Now let's compare based on AIC, using the $step$ command, starting from the largest possible model $lmod$
+```{r}
+# required to get step to 
+# work without error
+pima_omit_na <- na.omit(pima)
+lmod <- glm(test ~ pregnant + glucose + diastolic + triceps
+          + insulin + bmi + diabetes + age, family=binomial, pima_omit_na)
+lmodr <- step(lmod, trace=0)
+sumary(lmodr)
+```
+As we can see, $pregnant$, $bmi$, $diabetes$, and $age$ are selected as predictors (although it's noteworthy that the p-value on $pregnant$ is doesn't pass significance). 392 data points are used in the final model.
+
+## f)
+
+```{r}
+# let's add a column 
+# to the dataframe representing
+# if the row has any missing values at all
+pima$has_missing <- !complete.cases(pima)
+
+# now let's regress test 
+# on has_missing is slight and 
+# the p-value of .3 indicates
+# the relationship is uncertain
+lmod_missing_values <- glm(
+  test ~ as.numeric(has_missing), 
+  family=binomial, pima)
+
+sumary(lmod_missing_values)
+
+# plotting this relationship,
+# we can see visually there isn't much of a 
+# correlation between the two variables
+plot(jitter(as.numeric(has_missing), .5) ~ jitter(test, .5),  pima)
+
+# now let's include the model
+lmod_handle_missing <- glm(
+  test ~ pregnant + glucose + diastolic + triceps
+          + insulin + bmi + diabetes + age + as.numeric(has_missing),
+  family=binomial, pima)
+sumary(lmod_handle_missing)
 ```
