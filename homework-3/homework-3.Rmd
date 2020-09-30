@@ -1,5 +1,5 @@
 ---
-title: "Homework 3 - Question 2"
+title: "Homework 3 - Chapter Question 2"
 author: "Nickhil Sethi"
 output:
   pdf_document: default
@@ -20,7 +20,7 @@ Load pima dataset:
 data("pima")
 ```
 ## 2.a
-One thing that seems unbelievable about this plot -- there seem to be a very large number of zeros on the insulin variable, both for positive and negative tests. This suggests to me either a coding error or 0 representing missing data.
+See below for the interleaved histogram plot. One thing that does seem unbelievable about this plot -- is the very large number of zeros on the insulin variable, both for positive and negative tests. This suggests to me either a possible coding error or 0 representing missing data.
 ```{r}
 ggplot(pima, aes(x=insulin, fill=factor(test))) + 
 geom_histogram(
@@ -35,7 +35,7 @@ ggplot(pima, aes(x=insulin, fill=factor(test))) + geom_histogram(position="dodge
 ```
 
 ## 2.c
-Let's plot the other values and inspect for any suspect zero values: 
+Let's plot the other variables and inspect for any suspect zero values: 
 ```{r}
 g1 <- ggplot(pima, aes(x=glucose, fill=factor(test))) + geom_histogram(position="dodge", binwidth=10)
 
@@ -62,26 +62,35 @@ pima$triceps[pima$triceps == 0] <- NA
 pima$diastolic[pima$diastolic == 0] <- NA
 nrow(pima)
 ```
-Now let's fit a model. It seems 374 of the  768 rows in $pima$ had some `NA` value and therefore were not included in the regression.
+Now let's regress test on the other variables. 392 of the 768 rows in $pima$ were used, with the rest being dropped due a column having a value of `NA`.
+
 ```{r}
-lmod <- glm(test ~ pregnant + glucose + diastolic + triceps
-          + insulin + bmi + diabetes + age, family=binomial, pima)
-sumary(lmod)
+# number of rows 
+# in the pima dataset 
 nrow(pima)
+
+# fit the model
+lmod <- glm(test ~ ., family=binomial, pima)
+sumary(lmod)
 ```
 
 ## 2.d
+
+Running this model without $insulin$ and $triceps$ predictors, we see that 724 observations are now used in the model, indicating most of the $NA$ values 
+were in those two columns.
 ```{r}
 lmod2 <- glm(test ~ pregnant + glucose + diastolic 
           + bmi + diabetes + age, family=binomial, pima)
 sumary(lmod2)
 ```
 
-Now to test the significance of the smaller model against the larger model, we look at the difference in the deviance, which should be chi-squared distributed under the null.
+Now to test the significance of the smaller model against the larger model, we look at the difference in the deviances of the two models, which should be chi-squared distributed under null. As we can see below, the deviance of the smaller model is much higher than larger model, indicating a better fit; in fact 
+the p-value for this difference is below machine precision, so it prints as 0.
 ```{r}
 diff <- deviance(lmod2) - deviance(lmod)
 diff
-1 - pchisq(diff, 2)
+p_val <- 1 - pchisq(diff, 2)
+sprintf("%.10f", p_val)
 ```
 
 
@@ -107,9 +116,7 @@ As we can see, $pregnant$, $bmi$, $diabetes$, and $age$ are selected as predicto
 pima$has_missing <- !complete.cases(pima)
 
 # now let's regress test 
-# on has_missing is slight and 
-# the p-value of .3 indicates
-# the relationship is uncertain
+# on has_missing
 lmod_missing_values <- glm(
   test ~ as.numeric(has_missing), 
   family=binomial, pima)
@@ -119,27 +126,35 @@ sumary(lmod_missing_values)
 # plotting this relationship,
 # we can see visually there isn't much of a 
 # correlation between the two variables
-plot(jitter(as.numeric(has_missing), .5) ~ jitter(test, .5),  pima)
+plot(jitter(as.numeric(has_missing), .5) ~ jitter(test, .5), xlab="test", ylab="has missing", pima)
 
+```
+
+As we can see above, the coefficient on $has\_missing$ in the regression is slight and has a p-value of .3, indicating we should not reject the null that $test$ and $has\_missing$ are uncorrelated. 
+
+See above for a jittered plot of $has\_missing$ against $test$. Because $has\_missing$ is uncorrelated with the response, it's fine to drop missing data when we run the following regression.
+
+```{r}
 # now let's rerun the previous model on the whole dataset
 lmodr2 <- glm(test ~ pregnant + glucose + bmi + diabetes + age, family = binomial, pima)
 sumary(lmodr)
 sumary(lmodr2)
 ```
 
-Because $has_missing$ is uncorrelated with the response, it's fine to drop missing data.
-
 ## 2.g
 
+Let's compute the $odds\_ratio$, which captures the "difference" (as a ratio) between the odds of testing positive over two hypotheses. As well, let's use a confidence interval on $\beta_{BMI}$ to construct a confidence interval over the odds ratio:
 ```{r}
 bmi_coeff <- coef(lmodr2)[[4]]
 bmi_quartiles <- quantile(pima$bmi, na.rm=TRUE)
 bmi_quartiles
 
-third_quartile <- as.numeric(bmi_quartiles[[3]])
-first_quartile <- as.numeric(bmi_quartiles[[1]])
+third_quartile <- bmi_quartiles[[3]]
+first_quartile <- bmi_quartiles[[1]]
 odds_ratio <- exp(third_quartile * bmi_coeff) / exp(first_quartile * bmi_coeff)
 
+# here's the ratio of the odds of testing positive
+# with BMI at the third quartile vs the first quartile
 odds_ratio
 
 bmi_confint <- confint(lmodr2, "bmi")
@@ -150,6 +165,41 @@ upperbound_odds_ratio <- exp(third_quartile * upperbound) / exp(first_quartile *
 
 lowerbound_odds_ratio <- exp(third_quartile * lowerbound) / exp(first_quartile * lowerbound)
 
+# lowerbound of confidence interval
 lowerbound_odds_ratio
+
+# upperbound of confidence interval
 upperbound_odds_ratio
 ```
+
+
+## 2.h
+
+Let's compute the means of diastolic conditional on $test$, and at the population level:
+```{r}
+# population level mean
+m <- mean(pima$diastolic, na.rm = TRUE)
+m
+
+# mean conditional on test == 0
+pima_test_negative <- pima[pima$test == 0,]
+m_test_neg <- mean(pima_test_negative$diastolic, na.rm = TRUE)
+m_test_neg
+
+# mean conditional on test == 1
+pima_test_positive <- pima[pima$test == 1,]
+m_test_pos <- mean(pima_test_positive$diastolic, na.rm = TRUE)
+m_test_pos
+```
+
+
+Now let's summarize the model:
+```{r}
+sumary(lmod2)
+```
+
+From comparing means in the dataset, we see that women who test positive do have higher diastolic blood pressure than those who test negative (and in fact, the population at large). However, the coefficient on $diastolic$ is not significant in this model, suggesting that $diastolic$ does not affect $test$.
+
+This seems like a contradiction -- from simply comparing empirical means, we see that $test$ and $diastolic$ covary. However, significance is distinct from the sign and magnitude of the coefficient. The estimated coefficient on $diastolic$ tells us "what" is happening in the observed data, but the p-value tries to get at "why" we've observed it.
+
+More precisely, the p-value tells us how likely the estimated coefficient would be under the null; we can detect an empirical correlation between $test$ and $diastolic$, but the p-value tells us the probability that such a coefficient would be generated by pure noise.
