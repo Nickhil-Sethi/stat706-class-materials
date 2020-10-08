@@ -89,7 +89,8 @@ the p-value for this difference is below machine precision, so it prints as 0.
 ```{r}
 diff <- deviance(lmod2) - deviance(lmod)
 diff
-p_val <- 1 - pchisq(diff, 2)
+num_coef_diff <- length(coef(lmod)) - length(coef(lmod2))
+p_val <- 1 - pchisq(diff, num_coef_diff)
 sprintf("%.10f", p_val)
 ```
 
