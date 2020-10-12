@@ -12,6 +12,7 @@ library(ggplot2)
 library(printr)
 library(gridExtra)
 library(faraway)
+library(dplyr)
 ```
 
 
@@ -57,21 +58,39 @@ halfnorm(residuals(lmod))
 
 ```{r}
 turtle$empirical_logit <- log((turtle$male + .5) / (turtle$female + .5))
-ggplot(data = turtle, mapping=aes(x = empirical_logit, y = temp)) + geom_point()
+ggplot(data = turtle, mapping = aes(x = temp, y = empirical_logit)) + geom_point()
 ```
+
+We see strong non-linearity here, indicating a lack of fit. Empirical logit is an estimate of the log odds, which should be linear with respect to the inputs. However, we do not see a linear relationship here.
 
 ## (f) Add a quadratic term in temperature. Is this additional term a significant predictor of the response. Does the quadratic model fit the data?
 
 ```{r}
 turtle$temp_sq <- turtle$temp^2
-lmod <- glm(cbind(male, female) ~ temp + temp_sq, family=binomial, turtle)
-sumary(lmod)
-pchisq(deviance(lmod), df.residual(lmod), lower=FALSE)
+lmod2 <- glm(cbind(male, female) ~ temp + temp_sq, family=binomial, turtle)
+sumary(lmod2)
+pchisq(deviance(lmod2), df.residual(lmod2), lower=FALSE)
 ```
-The fit here is now slightly better than the others, but still not a great fit with a p-value of $.06$
+This term is significant in the model, with the coefficient on $temp\_sq$ having a p-value of $.019$. The model fit is now slightly better than the others, but still not a great fit with a p-value of $.06$
 
 # Bonus Question (2 points)
 
 ## (g) There are three replicates for each value of temperature. Assuming independent binomial variation, how much variation would be expected in the three proportions observed? Compare this to the observed variation in these proportions. Do they approximately agree or is there evidence of greater variation?
+
+As the question above outlines, there are three replicates per temperature, each with a different group size. For each temperature, we can compute the empirical variance of the observed proportion $frac\_male$ over the three replicates. As for the theoretical variance, we can derive a formula for this as follows; for each replicate in a temperature class, let $\hat{p}$ be the observed proportion of males, $Y$ be the number of males observed and $m$ be the total group size:
+\[ 
+  \mathrm{var}(\hat{p}) &= \mathrm{var}(Y/m)  \\ 
+  &= fddsfs
+\]
+
+```{r}
+
+turtle$est_prob <- predict(lmod2, type="response")
+
+turtle_by_temp <- group_by(turtle, temp)
+turtle_by_temp %>% 
+  summarise(GroupVariance=var(frac_male), EstimatedGroupVariance=est_var)
+
+```
 
 ## (h) If the three replicates are homogenous, they could be combined so that the dataset would have only five cases in total. Create this dataset and fit a model linear in temperature. Compare the fit seen for this model with that found in (b).
