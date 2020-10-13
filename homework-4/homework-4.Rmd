@@ -16,10 +16,9 @@ library(dplyr)
 ```
 
 
-Load pima dataset:
+Load turtle dataset:
 ```{r}
 data("turtle")
-?turtle
 ```
 
 ## (a) Plot the proportion of males against the temperature. Comment on the nature of the relationship.
@@ -71,17 +70,25 @@ lmod2 <- glm(cbind(male, female) ~ temp + temp_sq, family=binomial, turtle)
 sumary(lmod2)
 pchisq(deviance(lmod2), df.residual(lmod2), lower=FALSE)
 ```
-This term is significant in the model, with the coefficient on $temp\_sq$ having a p-value of $.019$. The model fit is now slightly better than the others, but still not a great fit with a p-value of $.06$
+This term is significant in the model, with the coefficient on $temp\_sq$ having a p-value of $.019$. The model fit is now slightly better than the others, but still not a great fit with a p-value of $.06$; however, it does pass significance at the level of $.05$.
 
 # Bonus Question (2 points)
 
 ## (g) There are three replicates for each value of temperature. Assuming independent binomial variation, how much variation would be expected in the three proportions observed? Compare this to the observed variation in these proportions. Do they approximately agree or is there evidence of greater variation?
 
-As the question above outlines, there are three replicates per temperature, each with a different group size. For each temperature, we can compute the empirical variance of the observed proportion $frac\_male$ over the three replicates. As for the theoretical variance, we can derive a formula for this as follows; for each replicate in a temperature class, let $\hat{p}$ be the observed proportion of males, $Y$ be the number of males observed and $m$ be the total group size:
-\[ 
-  \mathrm{var}(\hat{p}) &= \mathrm{var}(Y/m)  \\ 
-  &= fddsfs
-\]
+As the question above outlines, there are three replicates per temperature, each with a different group size. For each temperature, we can compute the empirical variance of the observed proportion $frac\_male$ over the three replicates. 
+
+As for the theoretical variance, we can derive a formula for this as follows; for each replicate in a temperature class, let $\hat{p}$ be the observed proportion of males, $Y$ be the number of males observed and $m$ be the total group size. Given the random pair $(Y, m)$, clearly $\hat{p} = Y / m$, and so by the conditional variance formula we have:
+
+$$
+\begin{aligned}
+  \mathrm{var}(\hat{p}) &= \mathrm{var}(Y/m) \\
+  &= \mathrm{E[\mathrm{var(Y/m|m)}]} + \mathrm{var[\mathrm{E}(Y/m|m)]} \\
+  &= \mathrm{E}[\mathrm{var}(Y/m|m)] + 0 \\
+  &= \mathrm{E}[\frac{1}{m^2} \mathrm{var}(Y|m)] \\
+  &= \mathrm{E}[p * (1-p) / m]
+\end{aligned}
+$$
 
 ```{r}
 
@@ -89,8 +96,28 @@ turtle$est_prob <- predict(lmod2, type="response")
 
 turtle_by_temp <- group_by(turtle, temp)
 turtle_by_temp %>% 
-  summarise(GroupVariance=var(frac_male), EstimatedGroupVariance=est_var)
+  summarise(
+    EmpiricalGroupVariance=var(frac_male), 
+    TheoreticalGroupVariance=(
+      mean((1 / (male + female)) * est_prob * (1 - est_prob))
+    ))
 
 ```
+If the above calculations are correct, the empirical group variance is systematically lower than the theoretical variance we would expect, perhaps indicating under-dispersion.
 
 ## (h) If the three replicates are homogenous, they could be combined so that the dataset would have only five cases in total. Create this dataset and fit a model linear in temperature. Compare the fit seen for this model with that found in (b).
+
+```{r}
+turtle_by_temp <- group_by(turtle, temp)
+turtle_temp_sum <- summarize(turtle_by_temp, male = sum(male), female = sum(female))
+
+# aggregated model
+lmod_agg <- glm(cbind(male, female) ~ temp, family=binomial, turtle_temp_sum)
+sumary(lmod_agg)
+pchisq(deviance(lmod_agg), df.residual(lmod_agg), lower=FALSE)
+
+# previous model in (b)
+sumary(lmod)
+pchisq(deviance(lmod), df.residual(lmod), lower=FALSE)
+```
+The aggregated model is actually a far worse fit than the previous model, with a p-value of $.002$. It's potentially worth noting that the aggregation reduces the number of data points in the model and thus reduces the significance, making it difficult to compare the two.
