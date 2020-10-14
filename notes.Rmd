@@ -1,0 +1,83 @@
+---
+title: "Class Notes"
+author: "Nickhil Sethi"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, width.cutoff=50)
+library(ggplot2)
+library(printr)
+library(gridExtra)
+library(faraway)
+library(palmerpenguins)
+```
+
+Hello there! If you're reading this, it means you're in Vitaly Druker's STAT 706 class. Awesome! And if you're anything like me, you're not amazing at taking notes in class, so here's some notes I typed up after re-watching the lectures online. 
+
+Most of the material is in the slides, so here I try to detail just the elements that aren't self-explanatory. Note that the professor said to pay the most attention to how to interpret the results, rather than mathematical underpinnings. Happy reading.
+
+# Class 1: Introduction
+
+Let's take a look at the palmer penguins dataset:
+
+```{r}
+# create a dataframe
+data(package = 'palmerpenguins')
+
+head(penguins)
+```
+
+- Let's talk about the statistical relationship between flipper length and body mass. If we had to guess, what would we expect it to look like?
+- Loosely speaking, it's probably an increasing relationship. Bigger penguins probably have larger flippers overall. Let's take a look at the data:
+
+```{r}
+ggplot(data = penguins, mapping = aes(x = body_mass_g, y = flipper_length_mm)) + geom_point()
+```
+
+- Let's define a simple model for the relationship between these two variables. Let $y_i$ stand for flipper length and $X_i$ stand for body mass. Here's a formula expressing a linear relationship between the two:
+
+$$
+y_i = \beta_0 + \beta_1 \cdot X_i
+$$
+- $\beta_0$ and $\beta_1$ are free parameters that are chosen based on the dataset. Let's graph the best fit line (we'll see how to actually choose the parameters later):
+
+```{r}
+ggplot(
+  data = penguins, 
+  mapping = aes(x = body_mass_g, y = flipper_length_mm)) + 
+  geom_point() + 
+  geom_smooth(method="lm")
+```
+
+- As we can see, the model doesn't perfectly capture the data. What's missing is a notion of error, which accounts for the fact that the relationship between the two variables isn't exactly a line.
+
+$$
+y_i = \beta_0 + \beta_1 \cdot X_i + \epsilon_i
+$$
+
+- How do we interpret the parameters in the model? 
+
+- $\beta_0$ is the predicted flipper length associated with a 0g penguin. This is just to say that the intercept term isn't by itself meaningful, as there's no such thing as a 0 mass penguin.
+
+- $\beta_1$ is the slope of the line -- the change in flipper length associated with a 1g increase in body mass of a penguin.
+
+# Class 2: OLS
+
+- Picking up where we left off before, how do we interpret the parameters of the model?
+
+$$ 
+y_i = \beta_0 + \beta_1 \cdot X_i
+$$
+
+- $\beta_0$ predicted flipper length of a 0 mass penguin. i.e. $\beta_0$ by itself is not meaningful.
+
+- $\beta_1$ the change in $y$ associated with a 1-unit change in $X$
+
+- What's missing from the model? $\epsilon_i$ captures noise / error.
+
+- Let's think about how to model the data generating process. What should the noise $\epsilon_i$ look like?
+
+- Symmetric above and below our regression line. i.e. the model isn't 
