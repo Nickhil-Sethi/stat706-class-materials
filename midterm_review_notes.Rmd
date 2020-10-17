@@ -1,0 +1,114 @@
+---
+title: "Midterm Review Notes"
+author: "Nickhil Sethi"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, width.cutoff=50)
+library(ggplot2)
+library(printr)
+library(gridExtra)
+library(faraway)
+library(palmerpenguins)
+```
+
+# Ordinary Linear Regression
+
+## estimate parameters
+
+In OLS, we estimate the parameters by choosing $\beta_0, \beta_1$ to minimize the sum of squares. 
+
+$$
+\min_{\beta_0, \beta_1} \sum_i (Y_i - (\beta_0 + \beta_1 X_i))^2
+$$
+
+That is, the sum of squared differences between our prediction and the true values $Y_i$. For OLS, closed form solutions exist for the parameter estimates:
+$$
+\begin{aligned}
+\hat{\beta_1} &= \frac{\sum_i (X_i - \bar{X})(Y_i - \bar{Y})}{\sum_i (X_i - \bar{X})^2} \\
+\hat{\beta_0} &= \bar{Y} - \beta_1 \bar{X}
+\end{aligned}
+$$
+
+## estimate variance
+The variance of the noise $\epsilon$ is estimated based on the parameters $\beta_0$, $\beta_1$ and the data set $\{X_i, Y_i\}$:
+
+$$
+\begin{aligned}
+\hat{Y}_i &= \hat{\beta_0} + \hat{\beta_1} X_i \\
+\hat{\sigma}^2 &= \frac{\sum_i (\hat{Y}_i - Y_i)^2}{n-2}
+\end{aligned}
+$$
+Notice the denominator is $n-2$ -- the "degrees of freedom", i.e. the number of data points minus the number of estimated parameters. This estimator is unbiased, meaning $\mathbb{E}(\hat{\sigma}^2 ) = \sigma^2$. 
+
+## least squares vs MLE
+
+Least squares and MLE estimation for linear regression are very similar; under the assumption of gaussian noise, they are nearly equivalent, with the only difference being the estimation of the sample variance.
+
+$$
+\begin{aligned}
+\hat{Y}_i = \hat{\beta_0} + \hat{\beta_1} X_i \\
+\hat{\sigma}^2_{MLE} = \frac{\sum_i (\hat{Y}_i - Y_i)^2}{n}
+\end{aligned}
+$$
+Notice the difference between the $MLE$ estimator of the sample variance and the least squares estimator of the sample variance. The $MLE$ estimator is biased i.e. $\mathbb{E}(\hat{\sigma}^2 ) \neq \sigma^2$; however, the bias term decays to zero as the number of data points $n$ increases.
+
+## residuals and their properties
+
+The residuals are defined as $\varepsilon_i = \hat{y}_i - y_i$. Of course, the loss is defined as the sum of squared residuals:
+
+$$
+\begin{aligned}
+\sum_i \varepsilon_i &= 0 \\ 
+\sum_i \varepsilon_i \cdot X_i &= 0 \\
+\end{aligned}
+$$
+From the above properties, it's very simple to show the following additional properties
+$$
+\begin{aligned}
+\sum_i \hat{Y_i} &= \sum Y_i \\ 
+\sum_i \varepsilon_i \cdot \hat{Y}_i &= 0
+\end{aligned}
+$$
+
+- Confidence intervals vs Prediction Intervals
+
+
+
+- Diagnostics (R squared)
+
+- Multiple Variables
+
+- Qualitative
+
+-AIC
+
+
+Bernoiulli/Binomial Data
+
+- link functions
+
+- predictions
+
+- odds, probability
+
+- risk ratio vs odds ratio
+
+- goodness of fit
+
+- Diagnostics (Pearson Residuals)
+
+- different scoring functions
+
+- confusion matrix and properties (sensitivity, specificity, PPV, accuracy, NPV)
+
+- comparing nested models
+
+- overdispersion
+
+- f statistics
+
+- quasibinomial
