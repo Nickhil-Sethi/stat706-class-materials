@@ -81,3 +81,52 @@ $$
 - Let's think about how to model the data generating process. What should the noise $\epsilon_i$ look like?
 
 - Symmetric above and below our regression line. i.e. the model isn't 
+
+
+
+Ordinary Linear Regression
+
+- estimate parameters
+
+- estimate variance
+
+- least squares vs MLE
+
+- residuals and their properties
+
+- Confidence intervals vs Prediction Intervals
+
+- Diagnostics (R squared)
+
+- Multiple Variables
+
+- Qualitative
+
+-AIC
+
+
+Bernoiulli/Binomial Data
+
+- link functions
+
+- predictions
+
+- odds, probability
+
+- risk ratio vs odds ratio
+
+- goodness of fit
+
+- Diagnostics (Pearson Residuals)
+
+- different scoring functions
+
+- confusion matrix and properties (sensitivity, specificity, PPV, accuracy, NPV)
+
+- comparing nested models
+
+-overdispersion
+
+- f statistics
+
+- quasibinomial
