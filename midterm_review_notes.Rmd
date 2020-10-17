@@ -50,8 +50,8 @@ Least squares and MLE estimation for linear regression are very similar; under t
 
 $$
 \begin{aligned}
-\hat{Y}_i = \hat{\beta_0} + \hat{\beta_1} X_i \\
-\hat{\sigma}^2_{MLE} = \frac{\sum_i (\hat{Y}_i - Y_i)^2}{n}
+\hat{Y}_i &= \hat{\beta_0} + \hat{\beta_1} X_i \\
+\hat{\sigma}^2_{MLE} &= \frac{\sum_i (\hat{Y}_i - Y_i)^2}{n}
 \end{aligned}
 $$
 Notice the difference between the $MLE$ estimator of the sample variance and the least squares estimator of the sample variance. The $MLE$ estimator is biased i.e. $\mathbb{E}(\hat{\sigma}^2 ) \neq \sigma^2$; however, the bias term decays to zero as the number of data points $n$ increases.
@@ -66,18 +66,26 @@ $$
 \sum_i \varepsilon_i \cdot X_i &= 0 \\
 \end{aligned}
 $$
-From the above properties, it's very simple to show the following additional properties
+From the above properties, it's very simple to show the following additional properties:
+
 $$
 \begin{aligned}
 \sum_i \hat{Y_i} &= \sum Y_i \\ 
 \sum_i \varepsilon_i \cdot \hat{Y}_i &= 0
 \end{aligned}
 $$
+Typically, we assume the noise is gaussian, in which case the residuals should be roughly normally distributed. We can check this via a q-q plot.
 
-- Confidence intervals vs Prediction Intervals
+## Confidence intervals vs Prediction Intervals
 
+A confidence interval estimates a range of plausible values of a parameter of interest, such as  regression parameters or the mean of a random variable; a prediction interval tries to estimate a range of plausible variables for a single out of sample point e.g. the a new $Y_i$. A prediction interval for $\hat{Y}_i$ would be
 
-
+$$
+\begin{align}
+\mathrm{E} [\hat{Y}_i] &= \beta_0 + \beta_1 X_i \\
+\sigma^2[\hat{Y}_i] &= \hat{\sigma^2}[1 + \frac{1}{n} + \frac{(X_i - \bar{X})^2}{\sum_j(X_j -\bar{X})^2}] 
+\end{align}
+$$
 - Diagnostics (R squared)
 
 - Multiple Variables
