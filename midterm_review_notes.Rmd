@@ -42,7 +42,7 @@ $$
 \hat{\sigma}^2 &= \frac{\sum_i (\hat{Y}_i - Y_i)^2}{n-2}
 \end{aligned}
 $$
-Notice the denominator is $n-2$ -- the "degrees of freedom", i.e. the number of data points minus the number of estimated parameters. This estimator is unbiased, meaning $\mathbb{E}(\hat{\sigma}^2 ) = \sigma^2$. 
+Notice the denominator is $n-2$ -- the "degrees of freedom", i.e. the number of data points minus the number of estimated parameters. This estimator is unbiased, meaning $\mathbb{E}(\hat{\sigma}^2) = \sigma^2$.
 
 ## least squares vs MLE
 
@@ -78,15 +78,25 @@ Typically, we assume the noise is gaussian, in which case the residuals should b
 
 ## Confidence intervals vs Prediction Intervals
 
-A confidence interval estimates a range of plausible values of a parameter of interest, such as  regression parameters or the mean of a random variable; a prediction interval tries to estimate a range of plausible variables for a single out of sample point e.g. the a new $Y_i$. A prediction interval for $\hat{Y}_i$ would be
+A confidence interval estimates a range of plausible values of a parameter of interest, e.g. $\mathrm{E}\,(Y_i | X_i)$; a prediction interval, on the other hand, tries to estimate a range of plausible variables for a single out of sample point e.g. the a new $Y_i$. The difference lies in the fact that a prediction interval has to account for the variance in the distribution of $Y_i$. 
+
+The distribution for an single out of sample $\hat{Y}_i$ would be gaussian with the following mean and variance:
 
 $$
-\begin{align}
+\begin{aligned}
 \mathrm{E} [\hat{Y}_i] &= \beta_0 + \beta_1 X_i \\
-\sigma^2[\hat{Y}_i] &= \hat{\sigma^2}[1 + \frac{1}{n} + \frac{(X_i - \bar{X})^2}{\sum_j(X_j -\bar{X})^2}] 
-\end{align}
+\sigma^2[\hat{Y}_i] &= \hat{\sigma}^2[1 + \frac{1}{n} + \frac{(X_i - \bar{X})^2}{\sum_j(X_j - \bar{X})^2}] 
+\end{aligned}
 $$
-- Diagnostics (R squared)
+
+
+## Diagnostics (R squared)
+
+$$
+\begin{aligned}
+R^2 = 1 - \frac{RSS}{TSS} = 1 - \frac{\sum_i (\hat{y}_i - y_i)^2}{\sum_i(\bar{y} - y_i)^2}
+\end{aligned}
+$$
 
 - Multiple Variables
 
