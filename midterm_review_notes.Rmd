@@ -166,19 +166,45 @@ P(Y = k) = {m \choose k} \cdot p^{k}\cdot(1-p)^{m-k} \\
 \end{aligned}
 $$
 - Binomial data is data where the response variable is a binomial random variable. For example, the input might be economic data at the county-level, and the response might be the number of people in the county who voted democrat in the most recent election (out of the total number of people in the county).
-- Note in binomial regression we need to know both the parameter $m_i$ and the 
-_ Bernoulli is just binomial when the parameter $m_i$ is 1 for all samples $i$
+- Note in binomial regression we need to know both the parameter $m_i$ and the number of successes $k_i$ for each data point $i$.
+- Bernoulli data can be thought of as binomial data where the $m=1$
 
 ## link functions
-In order to 
+The problem with using basic linear regression to model binomial and bernoulli data is that the linear predictor $\sum_i \beta_i * x_i$ is unbounded -- it isn't guaranteed to fall in $0,1$ or $0, m$.
 
 - predictions
 
-- odds, probability
+# odds, probability
 
-- risk ratio vs odds ratio
+- Odds is a different way of parametrizing of probability. The odds of an event with probability $p$ is $p / 1-p$. 
+- The odds concept is useful in thinking about bernoulli, binomial regression because the the linear predictor is the log of the odds:
 
-- goodness of fit
+$$
+\log(\frac{p_i}{1-p_i}) = \beta_0 + \beta_1 x_1 + ... + \beta_k x_k
+$$
+
+## risk ratio vs odds ratio
+
+- An odds ratio is a ratio of the odds of two events $odds(A) / odds(B)$. 
+- Because the linear predictor models the log odds for each data point, the success odds of data point $i$ are:
+
+$$
+\begin{aligned}
+odds_i\,|X_i = e^{\beta_0}\,\Pi_k\,e^{\beta_1 X_{i,k} } \\ 
+\end{aligned}
+$$
+- The odds ratio of success given two levels of predictor $X_{i,k}$, say $s, t$ is
+$$
+\begin{aligned}
+\mathrm{odds\_ratio}_i(X_i = s, X_i = t) = e^{\beta_k(s-t)}
+\end{aligned}
+$$
+- A risk ratio is the ratio probabilities given two events
+$$
+\mathrm{risk\_ratio(A, B)} = P(A) / P(B)
+$$
+## goodness of fit
+
 
 - Diagnostics (Pearson Residuals)
 
