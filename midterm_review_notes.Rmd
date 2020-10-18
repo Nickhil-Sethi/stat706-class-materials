@@ -144,10 +144,14 @@ Keep in mind that ading a variable to a regression can change ALL of the regress
 
 ## AIC
 
+- The AIC, short for Akaike-Information Criterion, is a measure of fit of a model that balances goodness of fit (i.e. log likelihood) against the number of variables in the model $q$
 $$
-L(\beta) = \Pi_i \mathrm{P}(y_i | x_i, \beta) \\
-\mathrm{AIC}(lmod) = 2\cdot \mathrm{log}(L(\hat{\beta})) + q
+\begin{aligned}
+L(\beta) &= \Pi_i \mathrm{P}(y_i | x_i, \beta) \\
+\mathrm{AIC}(\mathrm{lmod}) &= 2\cdot \mathrm{log}(L(\hat{\beta})) + q
+\end{aligned}
 $$
+- This is a very general and powerful way of comparing models.
 
 # Bernoulli/Binomial Data
 A word on terminology. Make sure not to confuse bernoulli with binomial! They're closely related but different concepts.
@@ -170,11 +174,14 @@ $$
 - Bernoulli data can be thought of as binomial data where the $m=1$
 
 ## link functions
+
 The problem with using basic linear regression to model binomial and bernoulli data is that the linear predictor $\sum_i \beta_i * x_i$ is unbounded -- it isn't guaranteed to fall in $0,1$ or $0, m$.
 
-- predictions
+## predictions
 
-# odds, probability
+- Pass the odds through the inverse-logit function to get the predicted probability $p_i$
+
+## odds, probability
 
 - Odds is a different way of parametrizing of probability. The odds of an event with probability $p$ is $p / 1-p$. 
 - The odds concept is useful in thinking about bernoulli, binomial regression because the the linear predictor is the log of the odds:
@@ -204,18 +211,20 @@ $$
 \mathrm{risk\_ratio(A, B)} = P(A) / P(B)
 $$
 ## goodness of fit
+- Under the assumption that a model is correct, the deviance (i.e. the log-likelihood) is distributed $\chi^2_{n-q-1}$; a low p-value under this distribution indicates a poor-fit.
 
+- We can assess goodness of fit with a calibration curve, which plots $empirical_probability$ against $pred_probability$. Empirical probabilities are determined via binning. Ideally the curve would follow the diagonal $y = x$
 
-- Diagnostics (Pearson Residuals)
+## Diagnostics (Pearson Residuals)
 
-- different scoring functions
+## different scoring functions
 
-- confusion matrix and properties (sensitivity, specificity, PPV, accuracy, NPV)
+## confusion matrix and properties (sensitivity, specificity, PPV, accuracy, NPV)
 
-- comparing nested models
+## comparing nested models
 
-- overdispersion
+## overdispersion
 
-- f statistics
+## f statistics
 
-- quasibinomial
+## quasibinomial
