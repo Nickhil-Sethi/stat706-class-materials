@@ -78,7 +78,26 @@ Typically, we assume the noise is gaussian, in which case the residuals should b
 
 ## Confidence intervals vs Prediction Intervals
 
-A confidence interval estimates a range of plausible values of a parameter of interest, e.g. $\mathrm{E}\,(Y_i | X_i)$; a prediction interval, on the other hand, tries to estimate a range of plausible variables for a single out of sample point e.g. the a new $Y_i$. The difference lies in the fact that a prediction interval has to account for the variance in the distribution of $Y_i$. 
+A confidence interval for $\beta_1$ is an interval-valued function of the data; intuitively, a confidence interval is supposed to provide a range of reasonable values for the parameter of interest. 
+
+- Here's how we construct a confidence interval for $\beta_1$:
+
+$$
+\begin{aligned}
+\hat{\beta_1} + \hat{\sigma} \cdot t(\frac{1-\alpha}{2}, n-2) \\
+\hat{\beta_1} + \hat{\sigma} \cdot t(\frac{1+\alpha}{2}, n-2)
+\end{aligned}
+$$
+- Interpretation: What is meant by "95%"? The model assume the data is distributed like as follows
+
+$$
+Y_i = \beta_0 + \beta_1 X_i + \varepsilon_i
+$$
+
+Confidence intervals are computed with respect to fixed $X_i$ but varying $\varepsilon_i$. So when we refer to a "95% confidence interval for $\beta_1$", we mean over 100 datasets that share the same $\{X_i\}$, roughly 95 of the confidence intervals contain the true parameter $\beta_1$.
+
+- Prediction intervals: whereas a confidence interval estimates a range of plausible values of a parameter of interest, e.g. $\mathrm{E}\,(Y_i | X_i)$; a prediction interval, on the other hand, tries to estimate a range of plausible variables for a single out of sample point e.g. the a new $Y_i$. 
+- The difference lies in the fact that a prediction interval has to account for the variance in the distribution of $Y_i$. 
 
 The distribution for an single out of sample $\hat{Y}_i$ would be gaussian with the following mean and variance:
 
@@ -89,6 +108,13 @@ $$
 \end{aligned}
 $$
 
+Notice the difference between the above and the $\emph{confidence}$ interval for $Y_i$:
+$$
+\begin{aligned}
+\mathrm{E} [\hat{Y}_i] &= \beta_0 + \beta_1 X_i \\
+\sigma^2[\hat{Y}_i] &= \hat{\sigma}^2[\frac{1}{n} + \frac{(X_i - \bar{X})^2}{\sum_j(X_j - \bar{X})^2}] 
+\end{aligned}
+$$
 
 ## Diagnostics (R squared)
 
@@ -98,16 +124,53 @@ R^2 = 1 - \frac{RSS}{TSS} = 1 - \frac{\sum_i (\hat{y}_i - y_i)^2}{\sum_i(\bar{y}
 \end{aligned}
 $$
 
-- Multiple Variables
+## Multiple Variables
 
-- Qualitative
+If we have more than one predictor, we can still find closed form solutions for all our coefficients. The form is now:
 
--AIC
+$$
+\begin{aligned}
+X_i &= (1, x_{i,1}, x_{i,2}, ... x_{i,k})\\
+\hat{\beta} &= (X^{T}X)^{-1}X^{T}\,Y
+\end{aligned}
+$$
+Keep in mind that ading a variable to a regression can change ALL of the regression coefficients.
 
+## Qualitative
 
-Bernoiulli/Binomial Data
+- Qualitative variables (e.g. species, race) can be represented by indicators i.e. a variable that takes value 1 if a condition is met and zero otherwise.
 
-- link functions
+- Keep in mind R chooses a reference point, meaning if we have k categories in a variable, R will create $k-1$ indicator variables and the $kth$ category will be represented by all the others taking a value of zero.
+
+## AIC
+
+$$
+L(\beta) = \Pi_i \mathrm{P}(y_i | x_i, \beta) \\
+\mathrm{AIC}(lmod) = 2\cdot \mathrm{log}(L(\hat{\beta})) + q
+$$
+
+# Bernoulli/Binomial Data
+A word on terminology. Make sure not to confuse bernoulli with binomial! They're closely related but different concepts.
+
+- A bernoulli random variable models a binary outcome, e.g. "yes" or "no", "success" or "failure", "male" or "female" etc. It takes values 0 or 1. A bernoulli random variable has one parameter -- the "success probability" $p$. The distribution is:
+
+$$
+\mathrm{bernoulli(p)} = p^{k}(1-p)^{1-k}
+$$
+
+- A binomial random variable models the number of successes in $m$ independent and identically distributed bernoulli random variables. It has parameters $m$ the total number of trials, $p$ the success probability of any given trial.
+- A binomial random variable can take values from 0 to $m$, inclusive.
+$$
+\begin{aligned}
+P(Y = k) = {m \choose k} \cdot p^{k}\cdot(1-p)^{m-k} \\
+\end{aligned}
+$$
+- Binomial data is data where the response variable is a binomial random variable. For example, the input might be economic data at the county-level, and the response might be the number of people in the county who voted democrat in the most recent election (out of the total number of people in the county).
+- Note in binomial regression we need to know both the parameter $m_i$ and the 
+_ Bernoulli is just binomial when the parameter $m_i$ is 1 for all samples $i$
+
+## link functions
+In order to 
 
 - predictions
 
