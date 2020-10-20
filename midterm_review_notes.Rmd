@@ -216,8 +216,18 @@ $$
 - We can assess goodness of fit with a calibration curve, which plots $empirical_probability$ against $pred_probability$. Empirical probabilities are determined via binning. Ideally the curve would follow the diagonal $y = x$
 
 ## Diagnostics (Pearson Residuals)
+- The pearson residual is:
+$$
+r_i = \frac{y_i - n_i\hat{p_i}}{\sqrt{\mathrm{var}(\hat{y_i})}}
+$$
+- the log likelihood can be thought of as the sum of the residuals, analgous to least squares
 
 ## different scoring functions
+- likelihood
+- brier score: 
+$$
+\frac{1}{n}\sum_i (\hat{p_i} - y_i)^2
+$$
 
 ## confusion matrix and properties (sensitivity, specificity, PPV, accuracy, NPV)
 
