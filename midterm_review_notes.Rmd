@@ -211,19 +211,26 @@ $$
 \mathrm{risk\_ratio(A, B)} = P(A) / P(B)
 $$
 ## goodness of fit
-- Under the assumption that a model is correct, the deviance (i.e. the log-likelihood) is distributed $\chi^2_{n-q-1}$; a low p-value under this distribution indicates a poor-fit.
+- Under the assumption that a model is correct, the deviance is distributed $\chi^2_{n-q-1}$; a low p-value under this distribution indicates a poor-fit.
 
 - We can assess goodness of fit with a calibration curve, which plots $empirical_probability$ against $pred_probability$. Empirical probabilities are determined via binning. Ideally the curve would follow the diagonal $y = x$
 
 ## Diagnostics (Pearson Residuals)
 - The pearson residual is:
 $$
-r_i = \frac{y_i - n_i\hat{p_i}}{\sqrt{\mathrm{var}(\hat{y_i})}}
+\begin{aligned}
+r_i &= \frac{y_i - n_i\hat{p_i}}{\sqrt{\mathrm{var}(\hat{y_i})}} \\ 
+&= \frac{y_i - n_i\hat{p_i}}{n_i \hat{p_i} * (1 - \hat{p_i})}
+\end{aligned}
 $$
-- the log likelihood can be thought of as the sum of the residuals, analgous to least squares
+- the log likelihood can be thought of as the sum of the residuals, analagous to least squares
 
 ## different scoring functions
 - likelihood
+$$
+\sum_i y_i \cdot log(p_i) + (m_i - y_i) \cdot log(1 - p_i)
+$$
+
 - brier score: 
 $$
 \frac{1}{n}\sum_i (\hat{p_i} - y_i)^2
@@ -232,6 +239,8 @@ $$
 ## confusion matrix and properties (sensitivity, specificity, PPV, accuracy, NPV)
 
 ## comparing nested models
+
+- Given two models $S$ and $L$ (for small and large), where the predictor set of S is a subset of the predictor set of L, the deviance is chi squared distributed under the assumption that the smaller is correct with degrees of freedom $l - s$
 
 ## overdispersion
 
