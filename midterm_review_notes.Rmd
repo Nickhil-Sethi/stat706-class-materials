@@ -216,6 +216,7 @@ $$
 - We can assess goodness of fit with a calibration curve, which plots $empirical_probability$ against $pred_probability$. Empirical probabilities are determined via binning. Ideally the curve would follow the diagonal $y = x$
 
 ## Diagnostics (Pearson Residuals)
+
 - The pearson residual is:
 $$
 \begin{aligned}
@@ -226,7 +227,7 @@ $$
 - the log likelihood can be thought of as the sum of the residuals, analagous to least squares
 
 ## different scoring functions
-- likelihood
+- log likelihood
 $$
 \sum_i y_i \cdot log(p_i) + (m_i - y_i) \cdot log(1 - p_i)
 $$
@@ -238,12 +239,20 @@ $$
 
 ## confusion matrix and properties (sensitivity, specificity, PPV, accuracy, NPV)
 
+- confusion matrix is just the matrix of (true response, predicted response) counts
+- accuracy of the model is just the number of correct cases divided by the total number of cases in the matrix
+- but confusion matrix provides a breakdown of what constitutes our accuracy. false positive / false negatives may be weighted differently than true positive / true negative.
+- sensitivity: what fraction of true positives were identified correctly?
+- specificity: what fraction of true negatives were identified correctly?
+
 ## comparing nested models
 
 - Given two models $S$ and $L$ (for small and large), where the predictor set of S is a subset of the predictor set of L, the deviance is chi squared distributed under the assumption that the smaller is correct with degrees of freedom $l - s$
 
 ## overdispersion
+- overdispersion is when the observed variance is far in excess of the expected variance
 
 ## f statistics
+- Since $\sigma$ is estimated from data, we must use an f-statistic to determine the significance of extra predictors in the presence of overdispersion
 
 ## quasibinomial
