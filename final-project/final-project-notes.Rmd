@@ -1,0 +1,291 @@
+---
+title: "Stat 706 Final Project: Investigating Predictors of Movie Profitability"
+subtitle: Nickhil Sethi
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(printr)
+library(faraway)
+
+# global variable, don't want to echo this
+GENRE_COLUMNS <- c( "genre_thriller", "genre_war", "genre_fantasy", "genre_documentary", "genre_gohands", "genre_action", "genre_family", "genre_crime", "genre_comedy", "genre_foreign", "genre_adventure", "genre_mystery", "genre_science_fiction", "genre_horror", "genre_drama", "genre_animation", "genre_romance", "genre_western", "genre_history", "genre_tv_movie", "genre_music")
+
+CSV_FILE_PATH <-  "/Users/nickhilsethi/src/stat706-class-materials/final-project/terraform/project-infra/project_data.csv"
+PROFIT_THRESHOLD <- 0.0
+```
+
+# Introduction
+The goal of this paper is to investigate film profitability in Kaggle's ["The Movies Dataset"](https://www.kaggle.com/rounakbanik/the-movies-dataset), an aggregate dataset from GroupLens and TMDB containing information on revenue, budget, ratings, and various qualitative traits (e.g. genre, medium) for roughly ~30,000 films.
+
+In particular, we hope to answer the following questions:
+
+- How does genre affect profitability?
+- How is critical reception related to profitability? 
+- How is release date related to profitability? 
+- How is budget related to profitability?
+
+We begin from a complete set of predictors and use an iterative procedure to minimize the Akaike-Information Criterion (i.e. R's `step` function) in order to discover the most powerful predictors. We then examine the reduced model for significance, interpret the results, and discuss future directions for this investigation.
+
+# Description of Data
+
+## Transformations, Cleaning, and Schema
+The Movies dataset contains three tables relevant to our analysis --  `movies_metadata`, `ratings`, and a join table `links`. The three tables have the following schemas:
+
+```
+MOVIES_METADATA {
+  genres: [{ genreId: <int>,  name: <str> }],
+  revenue: float,
+  budget: float,
+  imdbId: int
+}
+
+RATINGS {
+  movieId: int,
+  userId: int,
+  rating: float,
+}
+
+LINKS {
+  movieId: int,
+  imdbId: int
+}
+```
+
+These three tables were transformed into a single table `movies` used in the analysis for this paper. The schema of `movies` is as follows:
+```
+movies {
+  imdb_id: int,
+  budget: float,
+  profit: float,
+  release_date: date,
+  average_rating: float,
+  genre_action: boolean,
+  genre_thriller: boolean,
+  ...
+  genre_music: boolean
+}
+```
+Several transformations were performed to turn the three original tables into the usable format contained in `movies`. 
+
+1. The genre column of `movies_metadata` is JSON, encoded as a list of pairs e.g. `[{genreId: 1, genreName: Action}, {genreId: 2, genreName: Comedy}]`, with each pair representing a genre the film is associated with; this column was converted to a set of boolean columns (e.g. `genre_action`) with `True` representing that the film belongs to that genre.
+
+2. The `ratings` table contains movie ratings at the level of `(movieId, userId)` pairs, i.e. at the level of an individual critic's review; a grouping operation was performed to compute the average rating for each movie. 
+
+3. A join was performed between `movies_metadata` and the grouped version of `ratings` using the join table `links`.
+
+4. The `profit` column was added, defined as `revenue - budget` for each row; note the assumption here that all films use exactly there budget. 
+
+5. Finally, rows with missing values are dropped. As can be seen from the chart below, the variable `is_complete` may be correlated with `profit`, (with incomplete rows typically having `0` profit); however, only a tiny fraction of rows are missing data, and this is not likely to influence the results in any major way.
+
+```{r}
+movies <- read.csv(file = CSV_FILE_PATH, header = TRUE, sep = ",")
+
+# compute profits for each film
+movies$profit <- movies$revenue - movies$budget
+
+# cast the release_date field to a date type
+movies$release_date <- as.Date(movies$release_date)
+
+# cast genre columns to boolean
+for (col in GENRE_COLUMNS) {
+  movies[, col] <- lapply(movies[col], as.logical)
+}
+
+# now just restrict to the columns we need
+continuous_vars <- c("profit", "budget", "release_date", "average_rating")
+features <- c(continuous_vars, GENRE_COLUMNS)
+movies <- movies[, features]
+
+# remove incomplete cases
+movies$is_complete <- complete.cases(movies)
+
+p1 <- ggplot(
+  movies, aes(x=is_complete, y=profit)) + geom_jitter(width = .05, height=.05) + geom_point()
+p2 <- ggplot(
+  movies, aes(x=is_complete)) + geom_histogram(stat="count")
+grid.arrange(p1, p2, nrow=1)
+
+# now we drop the incomplete cases
+movies <- movies[movies$is_complete == TRUE, ]
+```
+
+## Distribution and Characteristics
+The `movies` table contains four continuous variables -- `profit`, `budget`, `average_rating`, and `release_date`, as well as 21 boolean variables reperesenting genre classifications e.g. `genre_action`. The distributions of the four continuous variables, as well as scatter plots of the input variables against `profit` are shown below:
+
+```{r}
+p1 <- ggplot(movies, aes(x=profit)) + geom_histogram(bins=40)
+p2 <- ggplot(movies, aes(x=average_rating)) + geom_histogram(bins = 25)
+p3 <- ggplot(movies, aes(x=release_date)) + geom_histogram(bins = 25)
+p4 <- ggplot(movies, aes(x=budget)) + geom_histogram(bins = 40)
+p5 <- ggplot(movies, aes(x=budget, y=profit)) + geom_point()
+p6 <- ggplot(movies, aes(x=release_date, y=profit)) + geom_point()
+p7 <- ggplot(movies, aes(x=average_rating, y=profit)) + geom_point()
+grid.arrange(p1, p2, p3, p4, p5, p6, p7, nrow=4)
+```
+We can glean a few interesting facts from inspection of the above graphs. The continuous variables appear to be normally distributed, with the exceptions of `profit` and `budget` which are heavily peaked at zero. The non-normality of these two variables becomes more visible if we restrict to films that are profit-positive, where we see the distributions more closely resembles an exponential than a gaussian:
+
+```{r}
+movies_profitable <- movies[movies$profit > 0, ]
+p1 <- ggplot(movies_profitable, aes(x=profit)) + geom_histogram(bins=100)
+p2 <- ggplot(movies_profitable, aes(x=budget)) + geom_histogram(bins=80)
+grid.arrange(p1, p2, nrow=1)
+```
+
+The heavy skew of these variables towards zero can pose a problem for linear regression. The response variable being peaked at zero encourages the model to simply output zero; furthermore, the input `budget` variable being peaked at zero reduces the certainty of the models predictions for high budget films.  These concerns are actually confirmed in the `Discussion` section, see below.
+
+A second issue results from the fact that `budget`, `average_rating`, and `release_date` are all correlated with profit, and are therefore correlated with each other; our procedure for model selection is minimizing AIC, but this may not yield the most interpretable model given that they all proxy for each other.
+
+Finally, let's take a look at the genre columns, to get a sense of the relative frequencies:
+
+```{r}
+genre_counts <- read.csv('/Users/nickhilsethi/src/stat706-class-materials/final-project/terraform/project-infra/genre_counts.csv')
+genre_counts <- genre_counts[genre_counts$genre %in% GENRE_COLUMNS, ]
+ggplot(genre_counts, aes(x=genre, y=count)) + geom_bar(stat="identity") + theme(text = element_text(size=12), axis.text.x = element_text(angle=90, vjust=0.5, hjust = 1))
+```
+
+## Methods and Results
+
+The model used here is ordinary least squares linear regression, with profit  modeled as a linear combination of all the predictors: 
+
+$profit = \beta_0 + \beta_1 \cdot release\_date + \beta_2 \cdot budget + \beta_3 \cdot average\_rating + \sum_i \beta_i \cdot genre_i + \varepsilon$
+
+Genres are treated as indicator variables with `TRUE` corresponding to `1` (more specifically, R casts them to factors with `FALSE` being the reference point). `release_date` is a `date` type, which is treated as an integer in linear regression (i.e. the number of days since `1970-01-01`). 
+
+After the above model is fit, we call `R`'s `step` function, which iteratively drops variables by testing if removing them from the model lowers the `AIC`. 
+
+### Complete Model
+
+Below is a summary of the results for the complete model:
+
+```{r}
+lmod <- lm(profit ~ ., data = movies)
+sumary(lmod)
+aic <- AIC(lmod)
+copy <- sprintf("AIC for full model: %f", aic)
+noquote(format(copy))
+```
+
+### Reduced Form Model
+And see here for the summary results of the reduced model:
+
+```{r}
+lmod_reduced <- step(lmod, trace=0)
+sumary(lmod_reduced)
+aic <- AIC(lmod_reduced)
+copy <- sprintf("AIC for reduced model: %f", aic)
+noquote(format(copy))
+```
+
+The AIC minimzation process results in seven genre variables being dropped, yielding a decrease in AIC from $1166395$ to $1166388$. Both models have an $R^{2}$ of `.4`.
+
+### Diagnostics
+
+Shown below are several diagnostic plots -- note in particular the QQ plot of the residuals, and residuals vs. fitted plot:
+
+```{r}
+movies$residual <- residuals(lmod_reduced)
+movies$prediction <- predict(lmod_reduced)
+
+par(mfrow = c(2,2))
+plot(lmod_reduced)
+```
+
+
+Here are plots of the residuals against some of the predictors:
+
+
+```{r}
+p1 <- ggplot(data = movies, aes(x=prediction, y=profit)) + geom_point() + geom_smooth()
+p2 <- ggplot(data = movies, aes(x=profit, y=residual)) + geom_point() + geom_smooth()
+p3 <- ggplot(data = movies, aes(x=budget, y=residual)) + geom_point() + geom_smooth()
+p4 <- ggplot(data = movies, aes(x=average_rating, y=residual)) + geom_point() + geom_smooth()
+grid.arrange(p1, p2, p3, p4,  nrow=3)
+```
+
+# Discussion
+
+## Model formulation
+
+Ordinary least squares regression was chosen for this model because the response variable `profit` is continuous and its range is (in principle) the whole real line, with some films being profit negative. 
+
+The `step` function was chosen as the primary technique for this model so as to "let the data speak"; that is, to determine the best predictors of `profit` without imposing too much speculation on model structure from the outset. For this reason, interaction effects between genres e.g. "action-comedy" or "musical-drama" were not accounted for. Doing so would entail arbitrary judgements about which interactions are valid "compound" genres; on the other hand, adding all pairwise interactions among 20 genres would add 190 additional predictors, with which comes numerous co-linearity problems and computational overhead.
+
+## Interpretation
+
+### Model Coefficients: Genre, Release Date, Budget, Rating
+
+The AIC minimization procedure eliminated 7 variables from the complete model, all of which are genres. The general trend is that niche genres such as `tv_movie` are removed in favor of mainstream ones such as `action`. Those that remain have effects on the order of `10e6` -- a change in genre can make a difference on the order of `$1,000,000` in profit.
+
+Given a threshold of .05, all variables in the reduced model are significant with the exceptions of `release_date` and three genres -- `fantasy`, `family`, and `foreign`. See below for 95% confidence intervals of the coefficients. For the variables that pass significance, the confidence intervals estimate a range that is on the order of magnitude of the estimated coefficient: 
+
+```{r}
+confint(lmod_reduced)
+```
+
+The only significant genres which have positive coefficients are `adventure`, `horror`, and `animation`. Genres `action`, `crime`, `drama`, `war`, `thriller`, `history` and `western` all have negative coefficients. Taken together, these results suggest that audiences  are averse to films with stressful subject matter (e.g. `drama` and `war`) or historical content (e.g. `history` and `western`). `horror` is a counterexample to this conclusion, but it is difficult to ascertain why this is the case without further investigation into how genre labels are assigned.
+
+The remaining significant variables `budget` and `average_rating` have positive effects on `profit`. `budget` has a coefficient of `~1.8`, indicating a roughly 2:1 return for an added dollar of budget. `average_rating` has a particularly strong effect on `profit`, with a coefficient of `4.0986e+06`; a single star increase in rating entails an increase in profit of $4,000,000. The effect of `release_date` is unclear, as its coefficient did not pass significance; the confidence interval of `release_date` crosses zero, and so the sign of this coefficient is unclear as well.
+
+Altogether, the model suggests that the best way to make a profitable film is to create a lighthearted adventure film which is also a critical favorite, such as Harry Potter or Star Wars.
+
+### Diagnostics
+
+Of the diagnostic graphs in the results section, the QQ plot and the residuals vs fitted plot indicate issues with the model. From the QQ plot, we see that the model errors are "heavy-tailed" rather than normally distributed. 
+
+```{r}
+plot(lmod_reduced, which = 2)
+```
+
+Though this has no impact on the sign and magnitude of our estimated coefficients, it does make our significance estimates and confidence intervals suspect. Heavy tailed residuals cause us to overestimate the variance, and so our confidence intervals are likely wider than they should be.
+
+Second, we see from the fitted vs residuals (and the residuals vs predictors) plots that the residuals are still very much correlated with the prediction, response, and inputs after the regression. In fact, the plots of the residuals against the predictors closely resemble the plots of profit against the predictors.
+
+The two problems above are due to the same underlying issue with the data -- the response is heavily peaked at zero, and so the regression has trouble picking up signal because it is largely encouraged to skew predictions towards zero. 
+
+This is confirmed by the plots below. The graph on the left indicates that the model's predictions, especially for highly profitable films, fall closer to zero than expected. The graph on the right indicates that the absolute value of the residual increases as profit moves away from zero in either direction.
+```{r}
+p1 <- ggplot(data = movies, aes(x=profit, y=prediction)) + geom_point() + geom_smooth() +  geom_abline(intercept = 0, slope = 1, color="red", 
+                 linetype="dashed", size=1.5) 
+
+p2 <- ggplot(data = movies, aes(x=profit, y=abs(residual))) + geom_point() + geom_smooth()
+
+grid.arrange(p1, p2, nrow=1)
+```
+
+I attempted to solve this problem by restricting the analysis to films which were profit positive and log-transforming the `profit` variable. As we can see, dropping movies whose profit is not strictly greater than zero and then log transforming the profit column makes the data more closely resemble a gaussian:
+
+```{r}
+movies <- movies[movies$profit > PROFIT_THRESHOLD, ]
+
+features <- c(c("profit", "budget", "release_date", "average_rating"), GENRE_COLUMNS)
+movies <- movies[, features]
+
+movies$log_profit <- log(movies$profit + 100)
+ggplot(data = movies, aes(x=log_profit)) + geom_histogram()
+```
+
+Now let us run the same procedure as above, but with the response as `log(profit)`. This seems to improve things a bit for most points, but on the edges of the distribution the problem is now reversed; for highly profitable films, predictions are skewed high. A moderately different set of predictors and coefficients is determined under this model:
+```{r}
+lmod <- lm(log_profit ~ ., data = movies)
+lmod <- step(lmod, trace=0)
+sumary(lmod)
+copy <- sprintf("AIC for model with log transformation: %f", AIC(lmod))
+noquote(format(copy))
+
+movies$pred <- predict(lmod)
+ggplot(data = movies, aes(x=pred, y=log_profit)) + geom_point() + geom_abline(intercept = 0, slope = 1, color="red", 
+                 linetype="dashed", size=1.5) + geom_smooth()
+```
+
+## Future Directions and Improvements
+
+As discussed above, the primary affliction of this model is the skew of the response towards zero. The main improvement that should be done here is to change the link function to account for heavy tails. Perhaps robust regression would be a suitable technique here, or a link function that models an exponential response rather than a gaussian. 
+
+A second improvement would be a wider diversity of input variables to the model; genre may be correlated with numerous external variables that are not controlled for (e.g. marketing or the reputation of particular directors) and so the direct effect of a genre is somewhat dubious from this investigation. Further investigation might also try to extract features from the "ground truth" e.g. film scripts or images.
